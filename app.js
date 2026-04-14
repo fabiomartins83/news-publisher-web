@@ -160,5 +160,36 @@ carregar();
 mostrarMensagem("Matéria atualizada com sucesso");
 }
 
+// ---------------- LIMPAR FORMULÁRIO ----------------
+function limparFormulario() {
+const ok = confirm("Deseja limpar o formulário?");
+if (!ok) return;
+
+content.value = "";
+title.value = "";
+linhafina.value = "";
+author.value = "";
+url.value = "";
+image.value = "";
+imgrights.value = "";
+chapeu.value = "";
+editoria.value = "";
+path.value = "";
+}
+
+// ---------------- ATIVAR CAIXA DE SELEÇÃO "EDITORIAS" ----------------
+const contentField = document.getElementById("content");
+const editoriaField = document.getElementById("editoria");
+
+function atualizarEditorias() {
+  const temTexto = contentField.value.trim().length > 0;
+  editoriaField.disabled = !temTexto;
+}
+
+contentField.addEventListener("input", atualizarEditorias);
+
+// garante estado correto ao abrir a página
+atualizarEditorias();
+
 // inicial
 carregar();
