@@ -55,16 +55,24 @@ gap: 5px;
 
 <h3>Criar matéria</h3>
 
-<input id="title" placeholder="Título">
-<input id="author" placeholder="Autor">
-<input id="editoria" placeholder="Editoria">
-<input id="chapeu" placeholder="Chapéu">
-<input id="url" placeholder="URL">
 <textarea id="content" placeholder="Conteúdo"></textarea>
 
-<button onclick="criar()">Salvar</button>
-<button onclick="exportar()">Exportar JSON</button>
+<input id="title" placeholder="Título">
+<input id="linhafina" placeholder="Linha fina">
+<input id="author" placeholder="Autor">
+<input id="url" placeholder="Link para matéria completa">
+<input id="image" placeholder="Caminho da imagem">
+<input id="imgrights" placeholder="Direitos da imagem">
+<input id="chapeu" placeholder="Chapéu">
+<input id="editoria" placeholder="Editoria">
+<input id="path" placeholder="Caminho da pasta">
 
+<h3>Ações gerais</h3>
+
+<button onclick="criar()">Salvar</button>
+<button onclick="exportarJSON()">Exportar JSON</button>
+<button onclick="exportarCSV()">Exportar CSV</button>
+<button onclick="excluirTabela()">🗑️ Excluir Tabela</button>
 <h3>Matérias</h3>
 <div id="lista"></div>
 
