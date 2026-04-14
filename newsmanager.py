@@ -12,7 +12,7 @@ except ModuleNotFoundError:
     REPORTLAB_INSTALLED = False
     print("⚠️ Biblioteca reportlab não instalada. Execute o comando 'pip install reportlab'.")
 
-DB_FILE = "materias.db"
+DB_FILE = "materias.sqlite"
 JSON_FILE = "conteudo.json"
 
 # --- Cores para terminal ---
