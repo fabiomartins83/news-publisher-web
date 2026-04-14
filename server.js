@@ -9,6 +9,16 @@ const db = new sqlite3.Database("materias-db.sqlite");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// --- serve HTML ---
+app.get("/", (req, res) => {
+res.sendFile(path.join(__dirname, "index.html"));
+});
+
+// --- serve JS (SEM pasta public) ---
+app.get("/app.js", (req, res) => {
+res.sendFile(path.join(__dirname, "app.js"));
+});
+
 // --- DB ---
 db.run(`
 CREATE TABLE IF NOT EXISTS materias (
@@ -50,28 +60,15 @@ db.run(
 });
 
 app.delete("/api/materias/:id", (req, res) => {
-db.run("DELETE FROM materias WHERE id=?", [req.params.id], () => {
-res.json({ ok: true });
-});
+db.run("DELETE FROM materias WHERE id=?", [req.params.id], () => res.json({ ok: true }));
 });
 
-// --- EXPORT JSON ---
 app.get("/export", (req, res) => {
 db.all("SELECT * FROM materias", (err, rows) => {
-fs.writeFileSync(
-"conteudo.json",
-JSON.stringify({ conteudo: rows }, null, 2)
-);
+fs.writeFileSync("conteudo.json", JSON.stringify({ conteudo: rows }, null, 2));
 res.json({ ok: true });
 });
-});
-
-// --- FRONTEND (HTML separado) ---
-app.get("/", (req, res) => {
-res.sendFile(path.join(__dirname, "index.html"));
 });
 
 // --- START ---
-app.listen(3000, () => {
-console.log("Servidor rodando em http://localhost:3000");
-});
+app.listen(3000, () => console.log("http://localhost:3000"));
