@@ -32,7 +32,7 @@ ${(m.content || "").slice(0, 120)}...
 
 <div class="actions">
 <button onclick="deletar(${m.id})">Excluir</button>
-<button onclick="editar(${m.id})">Editar título</button>
+<button onclick="editar(${m.id})">Editar matéria</button>
 </div>
 </div>
 `).join("");
@@ -94,17 +94,27 @@ carregar();
 }
 
 // ---------------- EDITAR ----------------
+
+let editId = null;
+
 async function editar(id) {
-const novo = prompt("Novo título:");
-if (!novo) return;
+const res = await fetch("/api/materias");
+const data = await res.json();
 
-await fetch("/api/materias/" + id, {
-method: "PUT",
-headers: {"Content-Type":"application/json"},
-body: JSON.stringify({ title: novo })
-});
+const item = data.find(m => m.id === id);
 
-carregar();
+if (!item) return;
+
+editId = id;
+
+// preencher modal
+document.getElementById("edit_title").value = item.title || "";
+document.getElementById("edit_author").value = item.author || "";
+document.getElementById("edit_publishdate").value = item.publishdate || "";
+document.getElementById("edit_content").value = item.content || "";
+
+// mostrar modal
+document.getElementById("modal").style.display = "flex";
 }
 
 // ---------------- EXPORTS ----------------
@@ -125,6 +135,29 @@ if (!ok) return;
 
 await fetch("/api/tabela", { method: "DELETE" });
 carregar();
+}
+
+// ---------------- FECHAR MODAL ----------------
+function fecharModal() {
+document.getElementById("modal").style.display = "none";
+}
+
+// ---------------- SALVAR EDIÇÃO ----------------
+async function salvarEdicao() {
+await fetch("/api/materias/" + editId, {
+method: "PUT",
+headers: {"Content-Type":"application/json"},
+body: JSON.stringify({
+title: edit_title.value,
+author: edit_author.value,
+publishdate: edit_publishdate.value,
+content: edit_content.value
+})
+});
+
+fecharModal();
+carregar();
+mostrarMensagem("Matéria atualizada com sucesso");
 }
 
 // inicial

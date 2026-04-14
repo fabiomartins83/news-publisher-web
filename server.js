@@ -117,11 +117,26 @@ path
 
 // --- EDITAR ---
 app.put("/api/materias/:id", (req, res) => {
-const { title, content, author, editoria, chapeu } = req.body;
+const { title, content, author, editoria, chapeu, publishdate } = req.body;
 
 db.run(
-"UPDATE materias SET title=?, content=?, author=?, editoria=?, chapeu=? WHERE id=?",
-[title, content, author, editoria, chapeu, req.params.id],
+`UPDATE materias
+SET title=?,
+content=?,
+author=?,
+editoria=?,
+chapeu=?,
+publishdate=?
+WHERE id=?`,
+[
+title,
+content,
+author,
+editoria,
+chapeu,
+publishdate,
+req.params.id
+],
 () => res.json({ ok: true })
 );
 });
