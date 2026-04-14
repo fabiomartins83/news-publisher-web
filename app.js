@@ -31,8 +31,8 @@ data.map(m => `
 ${(m.content || "").slice(0, 120)}...
 
 <div class="actions">
-<button onclick="deletar(${m.id})">Excluir</button>
-<button onclick="editar(${m.id})">Editar matéria</button>
+<button onclick="editar(${m.id})">Alterar </button>
+<button onclick="deletar(${m.id})"  tabindex="-1">Excluir </button>
 </div>
 </div>
 `).join("");
@@ -73,6 +73,7 @@ imgrights.value = "";
 chapeu.value = "";
 editoria.value = "";
 path.value = "";
+content.focus();
 
 // feedback
 mostrarMensagem("Matéria cadastrada com sucesso");
@@ -89,8 +90,11 @@ console.error(err);
 }
 // ---------------- DELETAR ----------------
 async function deletar(id) {
-await fetch("/api/materias/" + id, { method: "DELETE" });
-carregar();
+  const ok = confirm("Deseja excluir esta matéria?");
+  if (!ok) return;
+
+  await fetch("/api/materias/" + id, { method: "DELETE" });
+  carregar();
 }
 
 // ---------------- EDITAR ----------------
@@ -130,11 +134,11 @@ alert("materias.csv atualizado!");
 
 // ---------------- EXCLUIR TABELA ----------------
 async function excluirTabela() {
-const ok = confirm("Tem certeza que deseja apagar TODAS as matérias?");
-if (!ok) return;
+  const ok = confirm("Deseja excluir TODAS as matérias?");
+  if (!ok) return;
 
-await fetch("/api/tabela", { method: "DELETE" });
-carregar();
+  await fetch("/api/tabela", { method: "DELETE" });
+  carregar();
 }
 
 // ---------------- FECHAR MODAL ----------------
@@ -190,6 +194,30 @@ contentField.addEventListener("input", atualizarEditorias);
 
 // garante estado correto ao abrir a página
 atualizarEditorias();
+
+// ---------------- GERAR ID VISUAL (SIMULAÇÃO) ----------------
+function atualizarIdPreview() {
+  const lista = document.querySelectorAll("#lista .card");
+  const novoId = lista.length + 1;
+
+  document.getElementById("materia_id").value = novoId;
+}
+
+// chama ao carregar e após mudanças
+const originalCarregar = carregar;
+
+carregar = async function () {
+  await originalCarregar();
+  atualizarIdPreview();
+};
+
+// foco no campo Conteúdo
+window.addEventListener("DOMContentLoaded", () => {
+  const campoConteudo = document.getElementById("content");
+  if (campoConteudo) {
+    campoConteudo.focus();
+  }
+});
 
 // inicial
 carregar();

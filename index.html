@@ -9,7 +9,6 @@ body {
   font-family: Arial;
   background: #f5f5f5;
   margin: 0;
-  padding: 0;
 }
 
 /* TÍTULO */
@@ -18,39 +17,49 @@ h1 {
   margin: 20px 0;
 }
 
-/* LAYOUT 2 COLUNAS */
+/* CONTAINER PRINCIPAL (GRID ESTÁVEL) */
 .container {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
   padding: 20px;
-  align-items: flex-start;
+  align-items: start;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-/* COLUNA ESQUERDA */
-.left {
-  flex: 1;
+/* COLUNAS */
+.left, .right {
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: 20px;
 }
 
-/* COLUNA DIREITA */
-.right {
-  flex: 1;
+/* STICKY APENAS NO FORM */
+.left {
+  position: sticky;
+  top: 20px;
 }
 
 /* TÍTULOS */
 .left h3,
 .right h3 {
   text-align: center;
+  margin-bottom: 10px;
 }
 
-/* CARD */
+/* CARD DO FORM (AGRUPA MELHOR OS CAMPOS) */
+.form-card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* CARD DA LISTA */
 .card {
   background: white;
   padding: 10px;
-  margin: 10px 0;
+  margin-bottom: 10px;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
@@ -58,13 +67,14 @@ h1 {
 /* INPUTS */
 input, select, textarea {
   width: 100%;
-  margin: 5px 0;
+  margin: 6px 0;
   padding: 8px;
   box-sizing: border-box;
   background: white;
   border: 1px solid #ccc;
   font-family: Arial;
   font-size: 14px;
+  border-radius: 5px;
 }
 
 /* BOTÕES */
@@ -86,6 +96,7 @@ button {
 .actions {
   display: flex;
   gap: 5px;
+  margin-top: 10px;
 }
 
 /* BOTTOM BAR */
@@ -113,10 +124,7 @@ button {
 #modal {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: rgba(0,0,0,0.5);
   justify-content: center;
   align-items: center;
@@ -141,33 +149,39 @@ button {
   <div class="left">
     <h3>Inserir nova matéria</h3>
 
-    <textarea id="content" placeholder="Conteúdo"></textarea>
+    <div class="form-card">
+      <input id="materia_id" placeholder="ID da matéria (automático)" disabled>
+      <textarea id="content" placeholder="Conteúdo"></textarea>
+      <input id="title" placeholder="Título">
+      <input id="linhafina" placeholder="Linha fina">
+      <input id="author" placeholder="Autor">
+      <input id="url" placeholder="Link para matéria completa">
+      <input id="image" placeholder="Caminho da imagem">
+      <input id="imgrights" placeholder="Direitos da imagem">
 
-    <input id="title" placeholder="Título">
-    <input id="linhafina" placeholder="Linha fina">
-    <input id="author" placeholder="Autor">
-    <input id="url" placeholder="Link para matéria completa">
-    <input id="image" placeholder="Caminho da imagem">
-    <input id="imgrights" placeholder="Direitos da imagem">
-    <input id="chapeu" placeholder="Chapéu">
-    <select id="editoria" disabled>
-      <option value="nao-definido" selected>Não definido</option>
-      <option value="politica">Política</option>
-      <option value="economia">Economia</option>
-      <option value="cotidiano">Cotidiano</option>
-      <option value="esportes">Esportes</option>
-      <option value="cultura">Cultura</option>
-      <option value="ciencia">Ciência</option>
-    </select>
-    <input id="path" placeholder="Caminho da pasta">
+      <div style="display:flex; gap:10px;">
+        <input id="chapeu" placeholder="Chapéu" style="width:50%;">
+        <select id="editoria" disabled style="width:50%;">
+          <option value="nao-definido" selected>Não definido</option>
+          <option value="politica">Política</option>
+          <option value="economia">Economia</option>
+          <option value="cotidiano">Cotidiano</option>
+          <option value="esportes">Esportes</option>
+          <option value="cultura">Cultura</option>
+          <option value="ciencia">Ciência</option>
+        </select>
+      </div>
 
-    <div class="form-buttons">
-      <button onclick="criar()">Salvar</button>
-      <button onclick="limparFormulario()">Limpar</button>
+      <input id="path" placeholder="Caminho da pasta">
+
+      <div class="form-buttons">
+        <button onclick="criar()">Salvar</button>
+        <button onclick="limparFormulario()"  tabindex="-1">Limpar</button>
+      </div>
     </div>
   </div>
 
-  <!-- DIREITA (AGORA CORRETA) -->
+  <!-- DIREITA -->
   <div class="right">
     <h3>Matérias incluídas</h3>
     <div id="lista"></div>
@@ -177,24 +191,24 @@ button {
 
 <!-- BARRA INFERIOR -->
 <div class="bottom-bar">
-<button onclick="exportarJSON()">Exportar JSON</button>
-<button onclick="exportarCSV()">Exportar CSV</button>
-<button onclick="excluirTabela()">Excluir Tabela</button>
+  <button onclick="exportarJSON()">Exportar JSON</button>
+  <button onclick="exportarCSV()">Exportar CSV</button>
+  <button onclick="excluirTabela()">Excluir Tabela</button>
 </div>
 
 <!-- MODAL -->
 <div id="modal">
-<div>
-<h3>Editar matéria</h3>
+  <div>
+    <h3>Editar matéria</h3>
 
-<input id="edit_title" placeholder="Título"><br><br>
-<input id="edit_author" placeholder="Autor"><br><br>
-<input id="edit_publishdate" placeholder="Data publicação"><br><br>
-<textarea id="edit_content" placeholder="Conteúdo"></textarea><br><br>
+    <input id="edit_title" placeholder="Título"><br><br>
+    <input id="edit_author" placeholder="Autor"><br><br>
+    <input id="edit_publishdate" placeholder="Data publicação"><br><br>
+    <textarea id="edit_content" placeholder="Conteúdo"></textarea><br><br>
 
-<button onclick="salvarEdicao()">Salvar</button>
-<button onclick="fecharModal()">Cancelar</button>
-</div>
+    <button onclick="salvarEdicao()">Salvar</button>
+    <button onclick="fecharModal()">Cancelar</button>
+  </div>
 </div>
 
 <script src="/app.js"></script>
