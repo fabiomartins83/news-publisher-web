@@ -47,8 +47,35 @@ ${(m.content || "").slice(0, 120)}...
 // ---------------- CRIAR ----------------
 async function criar() {
   try {
-    await carregarAutores();
 
+    // =========================
+    // VALIDAÇÃO DE FORMULÁRIO
+    // =========================
+    const temConteudo =
+      content.value.trim() ||
+      title.value.trim() ||
+      linhafina.value.trim() ||
+      author.value.trim() ||
+      url.value.trim() ||
+      image.value.trim() ||
+      chapeu.value.trim() ||
+      editoria.value.trim() ||
+      path.value.trim();
+
+    if (!temConteudo) {
+      mostrarMensagem("Insira os dados da matéria no formulário.");
+      focarConteudo();
+      return; // 🚫 impede o envio
+    }
+
+    // ✅ VALIDAÇÃO MAIS RIGOROSA
+    if (!title.value.trim() || !content.value.trim()) {
+      mostrarMensagem("Preencha ao menos título e conteúdo.");
+      focarConteudo();
+      return;
+    }
+
+    await carregarAutores();
 
     // =========================
     // 1. COLETA + SPLIT AUTORES
