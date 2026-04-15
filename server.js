@@ -22,6 +22,8 @@ res.sendFile(path.join(__dirname, "app.js"));
 db.serialize(() => {
 
 db.run("PRAGMA foreign_keys = ON");
+db.run("PRAGMA journal_mode = WAL;");
+db.run("PRAGMA busy_timeout = 5000;");
 
 /* =========================
    TABELA MATERIAS
@@ -189,154 +191,172 @@ app.post("/api/autores", (req, res) => {
   );
 });
 
-// CRIAR MATÉRIA
+// ---------------- CRIAR MATÉRIA (CORRIGIDO 🔥) ----------------
 app.post("/api/materias", (req, res) => {
 
-const {
-content,
-title,
-linhafina,
-authors,
-url,
-image,
-imgrights,
-chapeu,
-editoria,
-path
-} = req.body;
+  const {
+    content,
+    title,
+    linhafina,
+    authors,
+    url,
+    image,
+    imgrights,
+    chapeu,
+    editoria,
+    path
+  } = req.body;
 
-const now = new Date().toISOString();
+  const now = new Date().toISOString();
 
-db.run(`
-INSERT INTO materias (
-date,
-publishdate,
-content,
-title,
-linhafina,
-url,
-image,
-imgrights,
-chapeu,
-editoria,
-path
-)
-VALUES (?,?,?,?,?,?,?,?,?,?,?)
-`, [
-now,
-now,
-content,
-title,
-linhafina,
-url,
-image,
-imgrights || "Reprodução",
-chapeu,
-editoria,
-path
-], function () {
+  db.serialize(() => {
 
-const materiaId = this.lastID;
+    db.run("BEGIN TRANSACTION");
 
-// garante sempre array
-let lista = [];
+    db.run(`
+      INSERT INTO materias (
+        date, publishdate, content, title, linhafina,
+        url, image, imgrights, chapeu, editoria, path
+      )
+      VALUES (?,?,?,?,?,?,?,?,?,?,?)
+    `, [
+      now, now, content, title, linhafina,
+      url, image, imgrights || "Reprodução",
+      chapeu, editoria, path
+    ], function (err) {
 
-if (typeof authors === "string") {
-  lista = authors.split(/[;.]/).map(a => a.trim()).filter(Boolean);
-} else if (Array.isArray(authors)) {
-  lista = authors;
-}
+      if (err) {
+        db.run("ROLLBACK");
+        return res.json({ ok: false });
+      }
 
-// garante somente IDs válidos
-const stmtSelect = `SELECT id FROM autores WHERE NomeAutor = ?`;
-const stmtInsert = db.prepare(`INSERT INTO autores (NomeAutor) VALUES (?)`);
-const stmtRel = db.prepare(`
-  INSERT INTO materia_autores (materia_id, autor_id)
-  VALUES (?, ?)
-`);
+      const materiaId = this.lastID;
 
-lista.forEach(valor => {
+      const lista = Array.isArray(authors) ? authors : [];
 
-  // se já é número → usa direto
-  if (typeof valor === "number") {
-    stmtRel.run(materiaId, valor);
-    return;
-  }
+      const stmtRel = db.prepare(`
+        INSERT OR IGNORE INTO materia_autores (materia_id, autor_id)
+        VALUES (?, ?)
+      `);
 
-  // se é string → resolve nome
-  db.get(stmtSelect, [valor], (err, row) => {
+      const stmtBusca = db.prepare(`
+        SELECT id FROM autores WHERE NomeAutor = ?
+      `);
 
-    if (row) {
-      stmtRel.run(materiaId, row.id);
-    } else {
-      stmtInsert.run(valor, function () {
-        stmtRel.run(materiaId, this.lastID);
+      const stmtInsert = db.prepare(`
+        INSERT INTO autores (NomeAutor) VALUES (?)
+      `);
+
+      let pendentes = lista.length;
+
+      if (pendentes === 0) finalizar();
+
+      lista.forEach(nome => {
+
+        if (typeof nome === "number") {
+          stmtRel.run(materiaId, nome, done);
+        } else {
+
+          stmtBusca.get(nome, (err, row) => {
+
+            if (row) {
+              stmtRel.run(materiaId, row.id, done);
+            } else {
+              stmtInsert.run(nome, function () {
+                stmtRel.run(materiaId, this.lastID, done);
+              });
+            }
+
+          });
+
+        }
+
       });
-    }
+
+      function done() {
+        pendentes--;
+        if (pendentes === 0) finalizar();
+      }
+
+      function finalizar() {
+        stmtRel.finalize();
+        stmtBusca.finalize();
+        stmtInsert.finalize();
+
+        db.run("COMMIT");
+        res.json({ ok: true });
+      }
+
+    });
+
+  });
+
+});
+
+
+// ---------------- EDITAR ----------------
+app.put("/api/materias/:id", (req, res) => {
+
+  const { title, content, editoria, chapeu, publishdate } = req.body;
+
+  db.run(`
+    UPDATE materias
+    SET title=?, content=?, editoria=?, chapeu=?, publishdate=?
+    WHERE id=?
+  `, [
+    title,
+    content,
+    editoria,
+    chapeu,
+    publishdate,
+    req.params.id
+  ], (err) => {
+    if (err) return res.json({ ok: false });
+    res.json({ ok: true });
   });
 });
 
-res.json({ ok: true });
 
-});
-});
-
-// EDITAR
-app.put("/api/materias/:id", (req, res) => {
-const { title, content, editoria, chapeu, publishdate } = req.body;
-
-db.run(`
-UPDATE materias
-SET title=?,
-content=?,
-editoria=?,
-chapeu=?,
-publishdate=?
-WHERE id=?
-`, [
-title,
-content,
-editoria,
-chapeu,
-publishdate,
-req.params.id
-], () => res.json({ ok: true }));
-});
-
-// EXCLUIR UMA MATÉRIA
+// ---------------- DELETE ----------------
 app.delete("/api/materias/:id", (req, res) => {
 
-const id = req.params.id;
+  const id = req.params.id;
 
-db.serialize(() => {
+  db.serialize(() => {
 
-  // 1. remove vínculos N:N primeiro
-  db.run("DELETE FROM materia_autores WHERE materia_id=?", [id]);
+    db.run("BEGIN TRANSACTION");
 
-  // 2. remove matéria
-  db.run("DELETE FROM materias WHERE id=?", [id], function (err) {
+    db.run("DELETE FROM materia_autores WHERE materia_id=?", [id]);
+    db.run("DELETE FROM materias WHERE id=?", [id], (err) => {
 
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ ok: false });
-    }
+      if (err) {
+        db.run("ROLLBACK");
+        return res.json({ ok: false });
+      }
 
+      db.run("COMMIT");
+      res.json({ ok: true });
+    });
+
+  });
+
+});
+
+
+// ---------------- EXCLUIR TABELA ----------------
+app.delete("/api/tabela", (req, res) => {
+
+  db.serialize(() => {
+    db.run("DELETE FROM materias");
+    db.run("DELETE FROM materia_autores");
+    db.run("DELETE FROM sqlite_sequence WHERE name='materias'");
     res.json({ ok: true });
   });
 
 });
 
-});
 
-// EXCLUIR TODAS MATÉRIAS
-app.delete("/api/tabela", (req, res) => {
-db.run("DELETE FROM materias", () => {
-db.run("DELETE FROM sqlite_sequence WHERE name='materias'");
-res.json({ ok: true });
-});
-});
-
-// EXPORT JSON
+// ---------------- EXPORT JSON ----------------
 app.get("/export/json", (req, res) => {
 
   db.all("SELECT * FROM materias ORDER BY id DESC", (err, materias) => {
@@ -347,26 +367,21 @@ app.get("/export/json", (req, res) => {
       JOIN autores a ON a.id = ma.autor_id
     `, (err2, relacoes) => {
 
-      // montar mapa materia_id → autores[]
       const mapa = {};
 
       relacoes.forEach(r => {
-        if (!mapa[r.materia_id]) {
-          mapa[r.materia_id] = [];
-        }
+        if (!mapa[r.materia_id]) mapa[r.materia_id] = [];
         mapa[r.materia_id].push(r.NomeAutor);
       });
 
-      // juntar com matérias
       const resultado = materias.map(m => ({
         ...m,
-        author: mapa[m.id] ? mapa[m.id].join(", ") : ""
+        author: mapa[m.id]?.join(", ") || ""
       }));
 
       fs.writeFileSync(
         "conteudo.json",
-        JSON.stringify({ conteudo: resultado }, null, 2),
-        "utf-8"
+        JSON.stringify({ conteudo: resultado }, null, 2)
       );
 
       res.json({ ok: true });
@@ -376,6 +391,8 @@ app.get("/export/json", (req, res) => {
 
 });
 
+
+// ---------------- EXPORT CSV ----------------
 app.get("/export/csv", (req, res) => {
 
   db.all("SELECT * FROM materias ORDER BY id DESC", (err, materias) => {
@@ -389,21 +406,18 @@ app.get("/export/csv", (req, res) => {
       const mapa = {};
 
       relacoes.forEach(r => {
-        if (!mapa[r.materia_id]) {
-          mapa[r.materia_id] = [];
-        }
+        if (!mapa[r.materia_id]) mapa[r.materia_id] = [];
         mapa[r.materia_id].push(r.NomeAutor);
       });
 
-      const header = "id,title,autores,editoria,chapeu,url,publishdate\n";
+      const header = "id,title,autores,editoria,url,publishdate\n";
 
       const body = materias.map(m => {
-        const autores = mapa[m.id] ? mapa[m.id].join(", ") : "";
-
-        return `${m.id},"${m.title || ""}","${autores}","${m.editoria || ""}","${m.chapeu || ""}","${m.url || ""}","${m.publishdate}"`;
+        const autores = mapa[m.id]?.join(", ") || "";
+        return `${m.id},"${m.title}","${autores}","${m.editoria}","${m.url}","${m.publishdate}"`;
       }).join("\n");
 
-      fs.writeFileSync("materias.csv", header + body, "utf-8");
+      fs.writeFileSync("materias.csv", header + body);
 
       res.json({ ok: true });
     });
