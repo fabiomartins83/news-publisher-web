@@ -151,7 +151,9 @@ async function criar() {
       content.focus();
 
       mostrarMensagem("Matéria cadastrada com sucesso");
-      carregar();
+      await carregar();
+      focarConteudo();
+
 
     } else {
       alert("Erro ao salvar matéria");
@@ -190,77 +192,91 @@ document.getElementById("modal").style.display = "flex";
 // ---------------- EXCLUIR MATÉRIA ----------------
 async function deletar(id) {
   const ok = confirm("Deseja excluir esta matéria?");
-  if (!ok) return;
+  
+  if (ok) {
+    const res = await fetch("/api/materias/" + id, { method: "DELETE" });
+    const result = await res.json();
 
-  const res = await fetch("/api/materias/" + id, { method: "DELETE" });
-  const result = await res.json();
-
-  if (result.ok) {
-    mostrarMensagem("Matéria excluída com sucesso");
-    carregar();
-  } else {
-    alert("Erro ao excluir");
+    if (result.ok) {
+      mostrarMensagem("Matéria excluída com sucesso");
+      await carregar();
+    } else {
+      alert("Erro ao excluir");
+    }
   }
-}
 
+  focarConteudo(); // 👈 sempre executa
+}
 
 // ---------------- EXPORTS ----------------
 async function exportarJSON() {
 await fetch("/export/json");
+focarConteudo();
 alert("conteudo.json atualizado!");
 }
 
 async function exportarCSV() {
 await fetch("/export/csv");
+focarConteudo();
+
 alert("materias.csv atualizado!");
 }
 
 // ---------------- EXCLUIR TABELA ----------------
 async function excluirTabela() {
   const ok = confirm("Deseja excluir TODAS as matérias?");
-  if (!ok) return;
+  
+  if (ok) {
+    await fetch("/api/tabela", { method: "DELETE" });
+    await carregar();
+  }
 
-  await fetch("/api/tabela", { method: "DELETE" });
-  carregar();
+  focarConteudo(); // 👈 sempre executa
 }
 
 // ---------------- FECHAR MODAL ----------------
 function fecharModal() {
-document.getElementById("modal").style.display = "none";
+  document.getElementById("modal").style.display = "none";
+  focarConteudo(); // 👈 garante foco ao cancelar
 }
 
 // ---------------- SALVAR EDIÇÃO ----------------
 async function salvarEdicao() {
-await fetch("/api/materias/" + editId, {
-method: "PUT",
-headers: {"Content-Type":"application/json"},
-body: JSON.stringify({
-  title: edit_title.value,
-  publishdate: edit_publishdate.value,
-  content: edit_content.value
-})
-});
+  await fetch("/api/materias/" + editId, {
+    method: "PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      title: edit_title.value,
+      publishdate: edit_publishdate.value,
+      content: edit_content.value
+    })
+  });
 
-fecharModal();
-carregar();
-mostrarMensagem("Matéria atualizada com sucesso");
+  fecharModal();
+  await carregar();
+  mostrarMensagem("Matéria atualizada com sucesso");
+
+  focarConteudo(); // 👈 mantém padrão (sempre no final)
 }
 
 // ---------------- LIMPAR FORMULÁRIO ----------------
 function limparFormulario() {
-const ok = confirm("Deseja limpar o formulário?");
-if (!ok) return;
+  const ok = confirm("Deseja limpar o formulário?");
+  
+  if (ok) {
+    content.value = "";
+    title.value = "";
+    linhafina.value = "";
+    author.value = "";
+    url.value = "";
+    image.value = "";
+    imgrights.value = "";
+    chapeu.value = "";
+    editoria.value = "";
+    path.value = "";
+  }
 
-content.value = "";
-title.value = "";
-linhafina.value = "";
-author.value = "";
-url.value = "";
-image.value = "";
-imgrights.value = "";
-chapeu.value = "";
-editoria.value = "";
-path.value = "";
+  focarConteudo(); // 👈 sempre executa
 }
 
 // ---------------- ATIVAR CAIXA DE SELEÇÃO "EDITORIAS" ----------------
@@ -294,11 +310,14 @@ carregar = async function () {
 };
 
 // foco no campo Conteúdo
-window.addEventListener("DOMContentLoaded", () => {
-  const campoConteudo = document.getElementById("content");
-  if (campoConteudo) {
-    campoConteudo.focus();
+function focarConteudo() {
+  const campo = document.getElementById("content");
+  if (campo) {
+    campo.focus();
   }
+}
+window.addEventListener("DOMContentLoaded", () => {
+  focarConteudo();
 });
 
 // carregar autores

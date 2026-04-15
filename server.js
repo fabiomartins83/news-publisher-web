@@ -362,7 +362,7 @@ app.get("/export/json", (req, res) => {
       // juntar com matérias
       const resultado = materias.map(m => ({
         ...m,
-        autores: mapa[m.id] ? mapa[m.id].join(", ") : ""
+        author: mapa[m.id] ? mapa[m.id].join(", ") : ""
       }));
 
       fs.writeFileSync(
