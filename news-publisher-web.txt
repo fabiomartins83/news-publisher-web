@@ -1,0 +1,1088 @@
+ï»¿NEWS PUBLISHER WEB
+
+[index.html]
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>News Publisher Web</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #f5f5f5;
+  margin: 0;
+}
+
+/* TÍTULO */
+h1 {
+  text-align: center;
+  margin: 20px 0;
+}
+
+/* CONTAINER PRINCIPAL (GRID ESTÁVEL) */
+.container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 20px;
+  align-items: start;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* COLUNAS */
+.left, .right {
+  display: flex;
+  flex-direction: column;
+}
+
+/* STICKY APENAS NO FORM */
+.left {
+  position: sticky;
+  top: 20px;
+}
+
+/* TÍTULOS */
+.left h3,
+.right h3 {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+/* CARD DO FORM (AGRUPA MELHOR OS CAMPOS) */
+.form-card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* CARD DA LISTA */
+.card {
+  background: white;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* INPUTS */
+input, select, textarea {
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px;
+  box-sizing: border-box;
+  background: white;
+  border: 1px solid #ccc;
+  font-family: Arial;
+  font-size: 14px;
+  border-radius: 5px;
+}
+
+/* BOTÕES */
+button {
+  margin: 5px 5px 5px 0;
+  padding: 8px;
+  cursor: pointer;
+}
+
+/* BOTÕES FORM */
+.form-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* AÇÕES */
+.actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+/* BOTTOM BAR */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #222;
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.bottom-bar button {
+  background: #fff;
+  border: none;
+  padding: 10px 15px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+/* MODAL */
+#modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+#modal > div {
+  background: white;
+  padding: 20px;
+  width: 500px;
+  border-radius: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>News Publisher Web</h1>
+
+<div class="container">
+
+  <!-- ESQUERDA -->
+  <div class="left">
+    <h3>Inserir nova matéria</h3>
+
+    <div class="form-card">
+      <input id="materia_id" placeholder="ID da matéria (automático)" disabled>
+      <textarea id="content" placeholder="Conteúdo"></textarea>
+      <input id="title" placeholder="Título">
+      <input id="linhafina" placeholder="Linha fina">
+      <input id="author" placeholder="Autor">
+      <input id="url" placeholder="Link para matéria completa">
+      <input id="image" placeholder="Caminho da imagem">
+      <input id="imgrights" placeholder="Direitos da imagem">
+
+      <div style="display:flex; gap:10px;">
+        <input id="chapeu" placeholder="Chapéu" style="width:50%;">
+        <select id="editoria" disabled style="width:50%;">
+          <option value="">Carregando...</option>
+        </select>
+      </div>
+
+      <input id="path" placeholder="Caminho da pasta">
+
+      <div class="form-buttons">
+        <button onclick="criar()">Salvar</button>
+        <button onclick="limparFormulario()"  tabindex="-1">Limpar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIREITA -->
+  <div class="right">
+    <h3>Matérias incluídas</h3>
+    <div id="lista"></div>
+  </div>
+
+</div>
+
+<!-- BARRA INFERIOR -->
+<div class="bottom-bar">
+  <button onclick="exportarJSON()">Exportar JSON</button>
+  <button onclick="exportarCSV()">Exportar CSV</button>
+  <button onclick="excluirTabela()">Excluir Tabela</button>
+</div>
+
+<!-- MODAL -->
+<div id="modal">
+  <div>
+    <h3>Editar matéria</h3>
+
+    <input id="edit_title" placeholder="Título"><br><br>
+    <input id="edit_author" placeholder="Autor"><br><br>
+    <input id="edit_publishdate" placeholder="Data publicação"><br><br>
+    <textarea id="edit_content" placeholder="Conteúdo"></textarea><br><br>
+
+    <button onclick="salvarEdicao()">Salvar</button>
+    <button onclick="fecharModal()">Cancelar</button>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+
+</body>
+</html>
+
+[server.js]
+const express = require("express");
+const sqlite3 = require("sqlite3").verbose();
+const fs = require("fs");
+const path = require("path");
+
+const app = express();
+const db = new sqlite3.Database("materias.sqlite");
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ---------------- FRONT ----------------
+app.get("/", (req, res) => {
+res.sendFile(path.join(__dirname, "index.html"));
+});
+
+app.get("/app.js", (req, res) => {
+res.sendFile(path.join(__dirname, "app.js"));
+});
+
+// ---------------- DB INIT ----------------
+db.serialize(() => {
+
+db.run("PRAGMA foreign_keys = ON");
+
+/* =========================
+   TABELA MATERIAS
+========================= */
+db.run(`
+CREATE TABLE IF NOT EXISTS materias (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+date DATETIME DEFAULT (datetime('now','localtime')),
+name VARCHAR(100),
+type VARCHAR(50) DEFAULT 'reportagem',
+publishdate DATETIME,
+title VARCHAR(255),
+content TEXT,
+linhafina TEXT,
+abstract TEXT,
+path TEXT,
+url TEXT,
+image TEXT,
+chapeu TEXT,
+category VARCHAR(50) DEFAULT 'geral',
+editoria TEXT,
+tema TEXT,
+destaque BOOLEAN,
+imgrights VARCHAR(100) DEFAULT 'Reprodução',
+imgdescript TEXT,
+location TEXT DEFAULT 'São Paulo',
+cortexto VARCHAR(20) DEFAULT 'black',
+corfundo VARCHAR(20) DEFAULT 'standard',
+fontetexto VARCHAR(100),
+entrelinhas VARCHAR(20) DEFAULT 'standard',
+margin VARCHAR(20) DEFAULT 'standard',
+padding VARCHAR(20) DEFAULT 'standard',
+textalign VARCHAR(20),
+paragrafo INTEGER DEFAULT 0,
+comentarios TEXT,
+usrviews INTEGER,
+maislidas BOOLEAN,
+importante BOOLEAN
+)`);
+
+/* =========================
+   TABELA EDITORIAS + SEED
+========================= */
+db.run(`
+CREATE TABLE IF NOT EXISTS editorias (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  NomeEditoria TEXT UNIQUE
+)`, () => {
+
+  const editoriasPadrao = [
+    "Política",
+    "Economia",
+    "Cotidiano",
+    "Esportes",
+    "Cultura",
+    "Ciência",
+    "Educação"
+  ];
+
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO editorias (NomeEditoria)
+    VALUES (?)
+  `);
+
+  editoriasPadrao.forEach(e => stmt.run(e));
+
+  stmt.finalize();
+});
+
+/* =========================
+   TABELA AUTORES + SEED
+========================= */
+db.run(`
+CREATE TABLE IF NOT EXISTS autores (
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+NomeAutor TEXT,
+Email TEXT,
+Biografia TEXT,
+Editoria INTEGER
+)`, () => {
+
+db.get(`SELECT COUNT(*) AS total FROM autores`, (err, row) => {
+if (!row || row.total === 0) {
+
+db.run(`
+INSERT OR IGNORE INTO autores (NomeAutor, Email, Biografia, Editoria)
+VALUES (?, ?, ?, ?)
+`, [
+"Fabio Martins",
+"fabio.martins@usp.br",
+"",
+null
+]);
+}
+});
+});
+
+/* =========================
+   RELAÇÃO MATERIA ? AUTORES
+========================= */
+db.run(`
+CREATE TABLE IF NOT EXISTS materia_autores (
+materia_id INTEGER,
+autor_id INTEGER,
+PRIMARY KEY (materia_id, autor_id),
+FOREIGN KEY (materia_id) REFERENCES materias(id) ON DELETE CASCADE,
+FOREIGN KEY (autor_id) REFERENCES autores(id)
+)`);
+
+});
+
+// ---------------- API ----------------
+
+// LISTAR MATÉRIAS
+app.get("/api/materias", (req, res) => {
+db.all(`
+SELECT m.*,
+GROUP_CONCAT(a.NomeAutor, ', ') AS autores
+FROM materias m
+LEFT JOIN materia_autores ma ON ma.materia_id = m.id
+LEFT JOIN autores a ON a.id = ma.autor_id
+GROUP BY m.id
+ORDER BY m.id DESC
+`, (err, rows) => {
+res.json(rows);
+});
+});
+
+// LISTAR EDITORIAS
+app.get("/api/editorias", (req, res) => {
+db.all("SELECT * FROM editorias ORDER BY NomeEditoria", (err, rows) => {
+res.json(rows);
+});
+});
+
+// LISTAR AUTORES
+app.get("/api/autores", (req, res) => {
+db.all("SELECT * FROM autores ORDER BY NomeAutor", (err, rows) => {
+res.json(rows);
+});
+});
+
+// CRIAR AUTOR
+app.post("/api/autores", (req, res) => {
+  const { NomeAutor } = req.body;
+
+  if (!NomeAutor) {
+    return res.status(400).json({ ok: false });
+  }
+
+  db.run(
+    "INSERT INTO autores (NomeAutor) VALUES (?)",
+    [NomeAutor],
+    function (err) {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ ok: false });
+      }
+
+      res.json({
+        ok: true,
+        id: this.lastID
+      });
+    }
+  );
+});
+
+// CRIAR MATÉRIA
+app.post("/api/materias", (req, res) => {
+
+const {
+content,
+title,
+linhafina,
+authors,
+url,
+image,
+imgrights,
+chapeu,
+editoria,
+path
+} = req.body;
+
+const now = new Date().toISOString();
+
+db.run(`
+INSERT INTO materias (
+date,
+publishdate,
+content,
+title,
+linhafina,
+url,
+image,
+imgrights,
+chapeu,
+editoria,
+path
+)
+VALUES (?,?,?,?,?,?,?,?,?,?,?)
+`, [
+now,
+now,
+content,
+title,
+linhafina,
+url,
+image,
+imgrights || "Reprodução",
+chapeu,
+editoria,
+path
+], function () {
+
+const materiaId = this.lastID;
+
+// garante sempre array
+let lista = [];
+
+if (typeof authors === "string") {
+  lista = authors.split(/[;.]/).map(a => a.trim()).filter(Boolean);
+} else if (Array.isArray(authors)) {
+  lista = authors;
+}
+
+// garante somente IDs válidos
+const stmtSelect = `SELECT id FROM autores WHERE NomeAutor = ?`;
+const stmtInsert = db.prepare(`INSERT INTO autores (NomeAutor) VALUES (?)`);
+const stmtRel = db.prepare(`
+  INSERT INTO materia_autores (materia_id, autor_id)
+  VALUES (?, ?)
+`);
+
+lista.forEach(valor => {
+
+  // se já é número ? usa direto
+  if (typeof valor === "number") {
+    stmtRel.run(materiaId, valor);
+    return;
+  }
+
+  // se é string ? resolve nome
+  db.get(stmtSelect, [valor], (err, row) => {
+
+    if (row) {
+      stmtRel.run(materiaId, row.id);
+    } else {
+      stmtInsert.run(valor, function () {
+        stmtRel.run(materiaId, this.lastID);
+      });
+    }
+  });
+});
+
+res.json({ ok: true });
+
+});
+});
+
+// EDITAR
+app.put("/api/materias/:id", (req, res) => {
+const { title, content, editoria, chapeu, publishdate } = req.body;
+
+db.run(`
+UPDATE materias
+SET title=?,
+content=?,
+editoria=?,
+chapeu=?,
+publishdate=?
+WHERE id=?
+`, [
+title,
+content,
+editoria,
+chapeu,
+publishdate,
+req.params.id
+], () => res.json({ ok: true }));
+});
+
+// EXCLUIR UMA MATÉRIA
+app.delete("/api/materias/:id", (req, res) => {
+
+const id = req.params.id;
+
+db.serialize(() => {
+
+  // 1. remove vínculos N:N primeiro
+  db.run("DELETE FROM materia_autores WHERE materia_id=?", [id]);
+
+  // 2. remove matéria
+  db.run("DELETE FROM materias WHERE id=?", [id], function (err) {
+
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ ok: false });
+    }
+
+    res.json({ ok: true });
+  });
+
+});
+
+});
+
+// EXCLUIR TODAS MATÉRIAS
+app.delete("/api/tabela", (req, res) => {
+db.run("DELETE FROM materias", () => {
+db.run("DELETE FROM sqlite_sequence WHERE name='materias'");
+res.json({ ok: true });
+});
+});
+
+// EXPORT JSON
+app.get("/export/json", (req, res) => {
+
+  db.all("SELECT * FROM materias ORDER BY id DESC", (err, materias) => {
+
+    db.all(`
+      SELECT ma.materia_id, a.NomeAutor
+      FROM materia_autores ma
+      JOIN autores a ON a.id = ma.autor_id
+    `, (err2, relacoes) => {
+
+      // montar mapa materia_id ? autores[]
+      const mapa = {};
+
+      relacoes.forEach(r => {
+        if (!mapa[r.materia_id]) {
+          mapa[r.materia_id] = [];
+        }
+        mapa[r.materia_id].push(r.NomeAutor);
+      });
+
+      // juntar com matérias
+      const resultado = materias.map(m => ({
+        ...m,
+        author: mapa[m.id] ? mapa[m.id].join(", ") : ""
+      }));
+
+      fs.writeFileSync(
+        "conteudo.json",
+        JSON.stringify({ conteudo: resultado }, null, 2),
+        "utf-8"
+      );
+
+      res.json({ ok: true });
+    });
+
+  });
+
+});
+
+app.get("/export/csv", (req, res) => {
+
+  db.all("SELECT * FROM materias ORDER BY id DESC", (err, materias) => {
+
+    db.all(`
+      SELECT ma.materia_id, a.NomeAutor
+      FROM materia_autores ma
+      JOIN autores a ON a.id = ma.autor_id
+    `, (err2, relacoes) => {
+
+      const mapa = {};
+
+      relacoes.forEach(r => {
+        if (!mapa[r.materia_id]) {
+          mapa[r.materia_id] = [];
+        }
+        mapa[r.materia_id].push(r.NomeAutor);
+      });
+
+      const header = "id,title,autores,editoria,chapeu,url,publishdate\n";
+
+      const body = materias.map(m => {
+        const autores = mapa[m.id] ? mapa[m.id].join(", ") : "";
+
+        return `${m.id},"${m.title || ""}","${autores}","${m.editoria || ""}","${m.chapeu || ""}","${m.url || ""}","${m.publishdate}"`;
+      }).join("\n");
+
+      fs.writeFileSync("materias.csv", header + body, "utf-8");
+
+      res.json({ ok: true });
+    });
+
+  });
+
+});
+
+// ---------------- START ----------------
+app.listen(3000, () => {
+console.log("http://localhost:3000");
+});
+
+[app.js]
+let autoresCache = [];
+let sugestBox = null;
+let debounce = null;
+
+function mostrarMensagem(texto) {
+const div = document.createElement("div");
+
+div.textContent = texto;
+div.style.position = "fixed";
+div.style.top = "20px";
+div.style.right = "20px";
+div.style.background = "#4CAF50";
+div.style.color = "white";
+div.style.padding = "10px 15px";
+div.style.borderRadius = "6px";
+div.style.boxShadow = "0 2px 6px rgba(0,0,0,0.2)";
+div.style.zIndex = 9999;
+div.style.fontFamily = "Arial";
+
+document.body.appendChild(div);
+
+setTimeout(() => div.remove(), 2000);
+}
+
+const SEPARADORES = /[;,]/;
+
+    // ---------------- LISTAR ----------------
+async function carregar() {
+const res = await fetch("/api/materias");
+const data = await res.json();
+
+document.getElementById("lista").innerHTML =
+data.map(m => `
+<div class="card">
+<b>${m.title}</b> - ${m.editoria || ""}<br>
+<small>${m.autores || ""}</small>
+${(m.content || "").slice(0, 120)}...
+
+<div class="actions">
+<button onclick="editar(${m.id})">Alterar </button>
+<button onclick="deletar(${m.id})"  tabindex="-1">Excluir </button>
+</div>
+</div>
+`).join("");
+}
+
+// ---------------- CRIAR ----------------
+async function criar() {
+  try {
+
+    // =========================
+    // VALIDAÇÃO DE FORMULÁRIO
+    // =========================
+    const temConteudo =
+      content.value.trim() ||
+      title.value.trim() ||
+      linhafina.value.trim() ||
+      author.value.trim() ||
+      url.value.trim() ||
+      image.value.trim() ||
+      chapeu.value.trim() ||
+      editoria.value.trim() ||
+      path.value.trim();
+
+    if (!temConteudo) {
+      mostrarMensagem("Insira os dados da matéria no formulário.");
+      focarConteudo();
+      return; // ?? impede o envio
+    }
+
+    // ? VALIDAÇÃO MAIS RIGOROSA
+    if (!title.value.trim() || !content.value.trim()) {
+      mostrarMensagem("Preencha ao menos título e conteúdo.");
+      focarConteudo();
+      return;
+    }
+
+    await carregarAutores();
+
+    // =========================
+    // 1. COLETA + SPLIT AUTORES
+    // =========================
+    let nomes = document.getElementById("author")
+      .value
+      .split(SEPARADORES)
+      .map(a => a.trim())
+      .filter(Boolean);
+    console.log(nomes);
+
+    let autoresFinal = [];
+
+    // =========================
+    // 2. RESOLVE AUTORES
+    // =========================
+    for (let nome of nomes) {
+
+      let existe = autoresCache.find(a =>
+        a.NomeAutor.toLowerCase() === nome.toLowerCase()
+      );
+
+      if (!existe) {
+
+        const ok = confirm(`Autor "${nome}" não existe. Deseja adicionar novo autor?`);
+
+        if (ok) {
+          const res = await fetch("/api/autores", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ NomeAutor: nome })
+          });
+
+          const novo = await res.json();
+
+          autoresFinal.push(novo.id);
+
+          autoresCache.push({
+            id: novo.id,
+            NomeAutor: nome
+          });
+
+        } else {
+          // aceita como texto mesmo sem cadastro
+          autoresFinal.push(nome);
+        }
+
+      } else {
+        autoresFinal.push(existe.id);
+      }
+    }
+
+    // =========================
+    // 3. ENVIO DA MATÉRIA
+    // =========================
+    const res = await fetch("/api/materias", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: content.value,
+        title: title.value,
+        linhafina: linhafina.value,
+        authors: autoresFinal,   // <-- IMPORTANTE (não mais "author")
+        url: url.value,
+        image: image.value,
+        imgrights: imgrights.value,
+        chapeu: chapeu.value,
+        editoria: editoria.value,
+        path: path.value
+      })
+    });
+
+    const text = await res.text();
+
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      console.error("Resposta inválida do servidor:", text);
+      alert("Erro no servidor. Veja console.");
+      return;
+    }
+
+    // =========================
+    // 4. FEEDBACK
+    // =========================
+    if (result.ok) {
+
+      content.value = "";
+      title.value = "";
+      linhafina.value = "";
+      author.value = "";
+      url.value = "";
+      image.value = "";
+      imgrights.value = "";
+      chapeu.value = "";
+      editoria.value = "";
+      path.value = "";
+
+      content.focus();
+
+      mostrarMensagem("Matéria cadastrada com sucesso");
+      await carregar();
+      focarConteudo();
+
+
+    } else {
+      alert("Erro ao salvar matéria");
+    }
+
+  } catch (err) {
+    console.error(err);
+    alert("Erro de conexão com o servidor");
+  }
+}
+
+// ---------------- EDITAR ----------------
+
+let editId = null;
+
+async function editar(id) {
+const res = await fetch("/api/materias");
+const data = await res.json();
+
+const item = data.find(m => m.id === id);
+
+if (!item) return;
+
+editId = id;
+
+// preencher modal
+document.getElementById("edit_title").value = item.title || "";
+document.getElementById("edit_author").value = item.autores || "";
+document.getElementById("edit_publishdate").value = item.publishdate || "";
+document.getElementById("edit_content").value = item.content || "";
+
+// mostrar modal
+document.getElementById("modal").style.display = "flex";
+}
+
+// ---------------- EXCLUIR MATÉRIA ----------------
+async function deletar(id) {
+  const ok = confirm("Deseja excluir esta matéria?");
+  
+  if (ok) {
+    const res = await fetch("/api/materias/" + id, { method: "DELETE" });
+    const result = await res.json();
+
+    if (result.ok) {
+      mostrarMensagem("Matéria excluída com sucesso");
+      await carregar();
+    } else {
+      alert("Erro ao excluir");
+    }
+  }
+
+  focarConteudo(); // ?? sempre executa
+}
+
+// ---------------- EXPORTS ----------------
+async function exportarJSON() {
+await fetch("/export/json");
+focarConteudo();
+alert("conteudo.json atualizado!");
+}
+
+async function exportarCSV() {
+await fetch("/export/csv");
+focarConteudo();
+
+alert("materias.csv atualizado!");
+}
+
+// ---------------- EXCLUIR TABELA ----------------
+async function excluirTabela() {
+  const ok = confirm("Deseja excluir TODAS as matérias?");
+  
+  if (ok) {
+    await fetch("/api/tabela", { method: "DELETE" });
+    await carregar();
+  }
+
+  focarConteudo(); // ?? sempre executa
+}
+
+// ---------------- FECHAR MODAL ----------------
+function fecharModal() {
+  document.getElementById("modal").style.display = "none";
+  focarConteudo(); // ?? garante foco ao cancelar
+}
+
+// ---------------- SALVAR EDIÇÃO ----------------
+async function salvarEdicao() {
+  await fetch("/api/materias/" + editId, {
+    method: "PUT",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      title: edit_title.value,
+      publishdate: edit_publishdate.value,
+      content: edit_content.value
+    })
+  });
+
+  fecharModal();
+  await carregar();
+  mostrarMensagem("Matéria atualizada com sucesso");
+
+  focarConteudo(); // ?? mantém padrão (sempre no final)
+}
+
+// ---------------- LIMPAR FORMULÁRIO ----------------
+function limparFormulario() {
+  const ok = confirm("Deseja limpar o formulário?");
+  
+  if (ok) {
+    content.value = "";
+    title.value = "";
+    linhafina.value = "";
+    author.value = "";
+    url.value = "";
+    image.value = "";
+    imgrights.value = "";
+    chapeu.value = "";
+    editoria.value = "";
+    path.value = "";
+  }
+
+  focarConteudo(); // ?? sempre executa
+}
+
+// ---------------- CARREGAR VALORES DE "EDITORIAS" ----------------
+async function carregarEditorias() {
+  const res = await fetch("/api/editorias");
+  const editorias = await res.json();
+
+  const select = document.getElementById("editoria");
+
+  // ?? proteção extra: limpa completamente
+  select.replaceChildren();
+
+  // opção padrão
+  const optDefault = document.createElement("option");
+  optDefault.value = "";
+  optDefault.textContent = "Não definido";
+  select.appendChild(optDefault);
+
+  // evitar duplicatas (extra segurança)
+  const nomesInseridos = new Set();
+
+  editorias.forEach(e => {
+    if (nomesInseridos.has(e.NomeEditoria)) return;
+
+    nomesInseridos.add(e.NomeEditoria);
+
+    const opt = document.createElement("option");
+    opt.value = e.NomeEditoria.toLowerCase();
+    opt.textContent = e.NomeEditoria;
+
+    select.appendChild(opt);
+  });
+}
+// ---------------- ATIVAR CAIXA DE SELEÇÃO "EDITORIAS" ----------------
+const contentField = document.getElementById("content");
+const editoriaField = document.getElementById("editoria");
+
+function atualizarEditorias() {
+  const temTexto = contentField.value.trim().length > 0;
+  editoriaField.disabled = !temTexto;
+}
+
+contentField.addEventListener("input", atualizarEditorias);
+
+// garante estado correto ao abrir a página
+atualizarEditorias();
+
+// ---------------- GERAR ID VISUAL (SIMULAÇÃO) ----------------
+function atualizarIdPreview() {
+  const lista = document.querySelectorAll("#lista .card");
+  const novoId = lista.length + 1;
+
+  document.getElementById("materia_id").value = novoId;
+}
+
+// chama ao carregar e após mudanças
+const originalCarregar = carregar;
+
+carregar = async function () {
+  await originalCarregar();
+  atualizarIdPreview();
+};
+
+// foco no campo Conteúdo
+function focarConteudo() {
+  const campo = document.getElementById("content");
+  if (campo) {
+    campo.focus();
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  focarConteudo();
+  carregarEditorias(); // ?? ESSENCIAL
+  carregar();
+});
+
+// carregar autores
+async function carregarAutores() {
+  const res = await fetch("/api/autores");
+  autoresCache = await res.json();
+}
+
+// autocompletar
+function initAutocomplete() {
+  const input = document.getElementById("author");
+
+  sugestBox = document.createElement("div");
+  sugestBox.style.position = "absolute";
+  sugestBox.style.background = "#fff";
+  sugestBox.style.border = "1px solid #ccc";
+  sugestBox.style.width = input.offsetWidth + "px";
+  sugestBox.style.zIndex = 9999;
+  sugestBox.style.display = "none";
+
+  input.parentNode.style.position = "relative";
+  input.parentNode.appendChild(sugestBox);
+
+  input.addEventListener("input", () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => sugerirAutores(input), 150);
+  });
+}
+
+// sugerir autores
+function sugerirAutores(input) {
+  const partes = input.value.split(SEPARADORES);
+  const termo = partes[partes.length - 1].trim().toLowerCase();
+
+  if (!termo) {
+    sugestBox.style.display = "none";
+    return;
+  }
+
+  const encontrados = autoresCache.filter(a =>
+    a.NomeAutor.toLowerCase().includes(termo)
+  );
+
+  sugestBox.innerHTML = "";
+
+  if (!encontrados.length) {
+    sugestBox.style.display = "none";
+    return;
+  }
+
+  encontrados.forEach(a => {
+    const div = document.createElement("div");
+    div.textContent = a.NomeAutor;
+    div.style.padding = "6px";
+    div.style.cursor = "pointer";
+
+    div.onclick = () => {
+      partes[partes.length - 1] = " " + a.NomeAutor;
+      input.value = partes.join(";").replace(/^;/, "").trim();
+      sugestBox.style.display = "none";
+    };
+
+    sugestBox.appendChild(div);
+  });
+
+  sugestBox.style.display = "block";
+}
+
+// inicial
+carregar();
