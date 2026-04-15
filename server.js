@@ -340,31 +340,78 @@ res.json({ ok: true });
 
 // EXPORT JSON
 app.get("/export/json", (req, res) => {
-db.all("SELECT * FROM materias ORDER BY id DESC", (err, rows) => {
-fs.writeFileSync(
-"conteudo.json",
-JSON.stringify({ conteudo: rows }, null, 2),
-"utf-8"
-);
 
-res.json({ ok: true });
-});
+  db.all("SELECT * FROM materias ORDER BY id DESC", (err, materias) => {
+
+    db.all(`
+      SELECT ma.materia_id, a.NomeAutor
+      FROM materia_autores ma
+      JOIN autores a ON a.id = ma.autor_id
+    `, (err2, relacoes) => {
+
+      // montar mapa materia_id → autores[]
+      const mapa = {};
+
+      relacoes.forEach(r => {
+        if (!mapa[r.materia_id]) {
+          mapa[r.materia_id] = [];
+        }
+        mapa[r.materia_id].push(r.NomeAutor);
+      });
+
+      // juntar com matérias
+      const resultado = materias.map(m => ({
+        ...m,
+        autores: mapa[m.id] ? mapa[m.id].join(", ") : ""
+      }));
+
+      fs.writeFileSync(
+        "conteudo.json",
+        JSON.stringify({ conteudo: resultado }, null, 2),
+        "utf-8"
+      );
+
+      res.json({ ok: true });
+    });
+
+  });
+
 });
 
-// EXPORT CSV
 app.get("/export/csv", (req, res) => {
-db.all("SELECT * FROM materias ORDER BY id DESC", (err, rows) => {
 
-const header = "id,title,autores,editoria,chapeu,url,publishdate\n";
+  db.all("SELECT * FROM materias ORDER BY id DESC", (err, materias) => {
 
-const body = rows.map(r =>
-`${r.id},"${r.title || ""}","${r.autores || ""}","${r.editoria || ""}","${r.chapeu || ""}","${r.url || ""}","${r.publishdate}"`
-).join("\n");
+    db.all(`
+      SELECT ma.materia_id, a.NomeAutor
+      FROM materia_autores ma
+      JOIN autores a ON a.id = ma.autor_id
+    `, (err2, relacoes) => {
 
-fs.writeFileSync("materias.csv", header + body, "utf-8");
+      const mapa = {};
 
-res.json({ ok: true });
-});
+      relacoes.forEach(r => {
+        if (!mapa[r.materia_id]) {
+          mapa[r.materia_id] = [];
+        }
+        mapa[r.materia_id].push(r.NomeAutor);
+      });
+
+      const header = "id,title,autores,editoria,chapeu,url,publishdate\n";
+
+      const body = materias.map(m => {
+        const autores = mapa[m.id] ? mapa[m.id].join(", ") : "";
+
+        return `${m.id},"${m.title || ""}","${autores}","${m.editoria || ""}","${m.chapeu || ""}","${m.url || ""}","${m.publishdate}"`;
+      }).join("\n");
+
+      fs.writeFileSync("materias.csv", header + body, "utf-8");
+
+      res.json({ ok: true });
+    });
+
+  });
+
 });
 
 // ---------------- START ----------------
