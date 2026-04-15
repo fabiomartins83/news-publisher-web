@@ -67,30 +67,28 @@ importante BOOLEAN
 ========================= */
 db.run(`
 CREATE TABLE IF NOT EXISTS editorias (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-NomeEditoria TEXT
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  NomeEditoria TEXT UNIQUE
 )`, () => {
 
-db.get(`SELECT COUNT(*) AS total FROM editorias`, (err, row) => {
-if (!row || row.total === 0) {
+  const editoriasPadrao = [
+    "Política",
+    "Economia",
+    "Cotidiano",
+    "Esportes",
+    "Cultura",
+    "Ciência",
+    "Educação"
+  ];
 
-const stmt = db.prepare(`
-INSERT INTO editorias (NomeEditoria)
-VALUES (?)
-`);
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO editorias (NomeEditoria)
+    VALUES (?)
+  `);
 
-[
-"Política",
-"Economia",
-"Cotidiano",
-"Esportes",
-"Cultura",
-"Ciência"
-].forEach(e => stmt.run(e));
+  editoriasPadrao.forEach(e => stmt.run(e));
 
-stmt.finalize();
-}
-});
+  stmt.finalize();
 });
 
 /* =========================
@@ -109,7 +107,7 @@ db.get(`SELECT COUNT(*) AS total FROM autores`, (err, row) => {
 if (!row || row.total === 0) {
 
 db.run(`
-INSERT INTO autores (NomeAutor, Email, Biografia, Editoria)
+INSERT OR IGNORE INTO autores (NomeAutor, Email, Biografia, Editoria)
 VALUES (?, ?, ?, ?)
 `, [
 "Fabio Martins",

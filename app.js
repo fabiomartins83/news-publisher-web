@@ -279,6 +279,37 @@ function limparFormulario() {
   focarConteudo(); // 👈 sempre executa
 }
 
+// ---------------- CARREGAR VALORES DE "EDITORIAS" ----------------
+async function carregarEditorias() {
+  const res = await fetch("/api/editorias");
+  const editorias = await res.json();
+
+  const select = document.getElementById("editoria");
+
+  // 🔥 proteção extra: limpa completamente
+  select.replaceChildren();
+
+  // opção padrão
+  const optDefault = document.createElement("option");
+  optDefault.value = "";
+  optDefault.textContent = "Não definido";
+  select.appendChild(optDefault);
+
+  // evitar duplicatas (extra segurança)
+  const nomesInseridos = new Set();
+
+  editorias.forEach(e => {
+    if (nomesInseridos.has(e.NomeEditoria)) return;
+
+    nomesInseridos.add(e.NomeEditoria);
+
+    const opt = document.createElement("option");
+    opt.value = e.NomeEditoria.toLowerCase();
+    opt.textContent = e.NomeEditoria;
+
+    select.appendChild(opt);
+  });
+}
 // ---------------- ATIVAR CAIXA DE SELEÇÃO "EDITORIAS" ----------------
 const contentField = document.getElementById("content");
 const editoriaField = document.getElementById("editoria");
@@ -316,8 +347,11 @@ function focarConteudo() {
     campo.focus();
   }
 }
+
 window.addEventListener("DOMContentLoaded", () => {
   focarConteudo();
+  carregarEditorias(); // 👈 ESSENCIAL
+  carregar();
 });
 
 // carregar autores
